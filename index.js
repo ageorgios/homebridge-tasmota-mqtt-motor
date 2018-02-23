@@ -15,6 +15,7 @@ function TasmotaMotorMQTT(log, config){
 
     var finalUpdateTimer = 0
   	var intervalhandle = 0;
+    var ensuring = 0
     
     this.log = log; // log file
     this.name = config["name"]; 
@@ -30,47 +31,58 @@ function TasmotaMotorMQTT(log, config){
     this.lastPosition = 0; // Last known position, (0-100%)
     this.currentPositionState = 2; // 2 = Stopped , 1=Moving Up , 0=Moving Down.
     this.currentTargetPosition = 0; //  Target Position, (0-100%)
-    
+
     var url = 'http://' + this.hostname + '/cm?cmnd=setoption14%201'
     this.log("Ensuring Tasmota Interlocking:  " + url);                    
-    var Interlocking = await rp({uri: url, json: true}).catch((error)=>{
+    rp({uri: url, json: true})
+    .then((json)=> {
+        this.log("Interlocking result: " + JSON.stringify(json));
+    })
+    .catch((error)=> {
+        ensuring = 1
         this.log("Error communicating to: " + url, error);
         this.log("ERROR CONFIGURING HOMEKIT DEVICE" + this.name); 
-        return error
     })
-    this.log("Interlocking result: " + Interlocking);
-    
+
     var url = 'http://' + this.hostname + '/cm?cmnd=setoption13%201'
     this.log("Ensuring Tasmota Touch Switch:  " + url);                    
-    var Switch = await rp({uri: url, json: true}).catch((error)=>{
+    rp({uri: url, json: true})
+    .then((json)=> {
+        this.log("Touch Switch result: " + JSON.stringify(json));
+    })
+    .catch((error)=> {
+        ensuring = 1
         this.log("Error communicating to: " + url, error);
         this.log("ERROR CONFIGURING HOMEKIT DEVICE" + this.name); 
-        return error
     })
-    this.log("Touch Switch result: " + Switch);
-    
+
     var url = 'http://' + this.hostname + '/cm?cmnd=backlog%20setoption0%200;PowerOnState%200'
     this.log("Ensuring Powered Off on Restart:  " + url);                    
-    var Powered = await rp({uri: url, json: true}).catch((error)=>{
+    rp({uri: url, json: true})
+    .then((json)=> {
+        this.log("Powered Off on Restart result: " + JSON.stringify(json));
+    })
+    .catch((error)=> {
+        ensuring = 1
         this.log("Error communicating to: " + url, error);
         this.log("ERROR CONFIGURING HOMEKIT DEVICE" + this.name); 
-        return error
     })
-    this.log("Powered Off on Restart result: " + Powered);
-    
+
     var pulsetimeUP = 12, pulsetimeDOWN = 12
     if (this.durationUp < 12) pulsetimeUP = this.durationUp * 10; else pulsetimeUP = this.durationUp + 100
     if (this.durationDown < 12) pulsetimeDOWN = this.durationDown * 10; else pulsetimeDOWN = this.durationDown + 100
     var url = 'http://' + this.hostname + '/cm?cmnd=backlog%20pulsetime1%20' + pulsetimeUP + ';pulsetime2%20' + pulsetimeDOWN
-    this.log("Ensuring Pulsetime:  " + url);                    
-    var Pulsetime = await rp({uri: url, json: true}).catch((error)=>{
+    this.log("Ensuring PulseTime:  " + url);                    
+    rp({uri: url, json: true})
+    .then((json)=> {
+        this.log("PulseTime result: " + JSON.stringify(json));
+    })
+    .catch((error)=> {
+        ensuring = 1
         this.log("Error communicating to: " + url, error);
         this.log("ERROR CONFIGURING HOMEKIT DEVICE" + this.name); 
-        return error
     })
-    this.log("Pulsetime result: " + Pulsetime);
-
-
+    
     this.infoService = new Service.AccessoryInformation();
     this.infoService
         .setCharacteristic(Characteristic.Manufacturer, "Sonoff")
@@ -88,6 +100,8 @@ function TasmotaMotorMQTT(log, config){
             .getCharacteristic(Characteristic.TargetPosition)
             .on('get', this.getTargetPosition.bind(this))
             .on('set', this.setTargetPosition.bind(this));
+
+
             
     this.client_Id = 'Homebridge_TasmotaMotorMQTT_' + Math.random().toString(16).substr(2, 8);
   	this.mqttOptions = {
@@ -175,6 +189,12 @@ TasmotaMotorMQTT.prototype.getTargetPosition = function(callback) {
 TasmotaMotorMQTT.prototype.setTargetPosition = function(pos, callback) {
 
   this.log("Setting target position to %s", pos);
+  if (this.ensuring) {
+    this.log("Did not ensure that Tasmota Options are set.");
+    callback();
+    return false;
+  }
+
   if (this.currentPositionState != 2) {
     this.log("Blinds are moving. You need to wait. I will do nothing.");
     callback();
