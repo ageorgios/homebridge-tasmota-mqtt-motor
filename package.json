@@ -1,6 +1,6 @@
 {
   "name": "homebridge-tasmota-mqtt-motor",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Control Sonoff T1 for Blinds through homebridge and MQTT Server",
   "main": "index.js",
   "scripts": {
