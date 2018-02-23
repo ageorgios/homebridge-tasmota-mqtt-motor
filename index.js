@@ -5,10 +5,10 @@ var Service, Characteristic;
 module.exports = function(homebridge){
         Service = homebridge.hap.Service;
         Characteristic = homebridge.hap.Characteristic;
-        homebridge.registerAccessory('homebridge-tasmota-motor2', 'TasmotaMotor2', TasmotaMotor2);
+        homebridge.registerAccessory('homebridge-tasmota-mqtt-motor', 'TasmotaMotorMQTT', TasmotaMotorMQTT);
 }
 
-function TasmotaMotor2(log, config){
+function TasmotaMotorMQTT(log, config){
 
     var finalUpdateTimer = 0
   	var intervalhandle = 0;
@@ -46,7 +46,7 @@ function TasmotaMotor2(log, config){
             .on('get', this.getTargetPosition.bind(this))
             .on('set', this.setTargetPosition.bind(this));
             
-    this.client_Id = 'Homebridge_TasmotaMotor2_' + Math.random().toString(16).substr(2, 8);
+    this.client_Id = 'Homebridge_TasmotaMotorMQTT_' + Math.random().toString(16).substr(2, 8);
   	this.mqttOptions = {
   		keepalive: 10,
   		clientId: this.client_Id,
@@ -115,22 +115,22 @@ function TasmotaMotor2(log, config){
   	});
 }
 
-TasmotaMotor2.prototype.getCurrentPosition = function(callback) {
+TasmotaMotorMQTT.prototype.getCurrentPosition = function(callback) {
     this.log("Requested CurrentPosition: %s", this.lastPosition);
     callback(null, this.lastPosition);
 }
 
-TasmotaMotor2.prototype.getPositionState = function(callback) {
+TasmotaMotorMQTT.prototype.getPositionState = function(callback) {
     this.log("Requested PositionState: %s", this.currentPositionState);
     callback(null, this.currentPositionState);
 }
 
-TasmotaMotor2.prototype.getTargetPosition = function(callback) {
+TasmotaMotorMQTT.prototype.getTargetPosition = function(callback) {
     this.log("Requested TargetPosition: %s", this.currentTargetPosition);
     callback(null, this.currentTargetPosition);
 }
 
-TasmotaMotor2.prototype.setTargetPosition = function(pos, callback) {
+TasmotaMotorMQTT.prototype.setTargetPosition = function(pos, callback) {
 
   this.log("Setting target position to %s", pos);
   if (this.currentPositionState != 2) {
@@ -168,7 +168,7 @@ TasmotaMotor2.prototype.setTargetPosition = function(pos, callback) {
   return true;
 }
 
-TasmotaMotor2.prototype.httpRequest = function(move, duration, callback){
+TasmotaMotorMQTT.prototype.httpRequest = function(move, duration, callback){
   var url, pulsetime, delay = 2
   if (duration < 12) { 
     duration = duration * 10;
@@ -197,6 +197,6 @@ TasmotaMotor2.prototype.httpRequest = function(move, duration, callback){
   }.bind(this));
 }
 
-TasmotaMotor2.prototype.getServices = function() {
+TasmotaMotorMQTT.prototype.getServices = function() {
   return [this.infoService, this.service];
 }
