@@ -1,6 +1,8 @@
 var request = require('request');
+var rp = require('request-promise-native');
 var mqtt = require("mqtt");
 var Service, Characteristic;
+var async = require('async');
 
 module.exports = function(homebridge){
         Service = homebridge.hap.Service;
@@ -8,11 +10,12 @@ module.exports = function(homebridge){
         homebridge.registerAccessory('homebridge-tasmota-mqtt-motor', 'TasmotaMotorMQTT', TasmotaMotorMQTT);
 }
 
+
 function TasmotaMotorMQTT(log, config){
 
     var finalUpdateTimer = 0
   	var intervalhandle = 0;
-
+    
     this.log = log; // log file
     this.name = config["name"]; 
     this.hostname = config["hostname"];
@@ -28,6 +31,46 @@ function TasmotaMotorMQTT(log, config){
     this.currentPositionState = 2; // 2 = Stopped , 1=Moving Up , 0=Moving Down.
     this.currentTargetPosition = 0; //  Target Position, (0-100%)
     
+    var url = 'http://' + this.hostname + '/cm?cmnd=setoption14%201'
+    this.log("Ensuring Tasmota Interlocking:  " + url);                    
+    var Interlocking = await rp({uri: url, json: true}).catch((error)=>{
+        this.log("Error communicating to: " + url, error);
+        this.log("ERROR CONFIGURING HOMEKIT DEVICE" + this.name); 
+        return error
+    })
+    this.log("Interlocking result: " + Interlocking);
+    
+    var url = 'http://' + this.hostname + '/cm?cmnd=setoption13%201'
+    this.log("Ensuring Tasmota Touch Switch:  " + url);                    
+    var Switch = await rp({uri: url, json: true}).catch((error)=>{
+        this.log("Error communicating to: " + url, error);
+        this.log("ERROR CONFIGURING HOMEKIT DEVICE" + this.name); 
+        return error
+    })
+    this.log("Touch Switch result: " + Switch);
+    
+    var url = 'http://' + this.hostname + '/cm?cmnd=backlog%20setoption0%200;PowerOnState%200'
+    this.log("Ensuring Powered Off on Restart:  " + url);                    
+    var Powered = await rp({uri: url, json: true}).catch((error)=>{
+        this.log("Error communicating to: " + url, error);
+        this.log("ERROR CONFIGURING HOMEKIT DEVICE" + this.name); 
+        return error
+    })
+    this.log("Powered Off on Restart result: " + Powered);
+    
+    var pulsetimeUP = 12, pulsetimeDOWN = 12
+    if (this.durationUp < 12) pulsetimeUP = this.durationUp * 10; else pulsetimeUP = this.durationUp + 100
+    if (this.durationDown < 12) pulsetimeDOWN = this.durationDown * 10; else pulsetimeDOWN = this.durationDown + 100
+    var url = 'http://' + this.hostname + '/cm?cmnd=backlog%20pulsetime1%20' + pulsetimeUP + ';pulsetime2%20' + pulsetimeDOWN
+    this.log("Ensuring Pulsetime:  " + url);                    
+    var Pulsetime = await rp({uri: url, json: true}).catch((error)=>{
+        this.log("Error communicating to: " + url, error);
+        this.log("ERROR CONFIGURING HOMEKIT DEVICE" + this.name); 
+        return error
+    })
+    this.log("Pulsetime result: " + Pulsetime);
+
+
     this.infoService = new Service.AccessoryInformation();
     this.infoService
         .setCharacteristic(Characteristic.Manufacturer, "Sonoff")
@@ -65,7 +108,6 @@ function TasmotaMotorMQTT(log, config){
   		password: config["password"],
   		rejectUnauthorized: false
   	};
-
             
     this.client = mqtt.connect(this.mqttUrl, this.mqttOptions);
     var that = this;
