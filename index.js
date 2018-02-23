@@ -133,14 +133,10 @@ function TasmotaMotorMQTT(log, config){
   			setTimeout(function() {that.client.subscribe(that.topicStatusGetUP)},1000)
   			setTimeout(function() {that.client.subscribe(that.topicStatusGetDOWN)},1000)
   	});
-  	var absoluteTargetDOWNflag = 0
-    var absoluteTargetUPflag = 0
   	this.client.on('message', function(topic, message) {
       // that.log(topic + " message received = " + message);
       if (message == "ON") {
          that.log("moving window from buttons, lastPosition = " + that.lastPosition);
-      	 if (topic == that.topicStatusGetDOWN && that.lastPosition == 100 && that.currentTargetPosition == 0) that.absoluteTargetDOWNflag = 1
-      	 if (topic == that.topicStatusGetUP && that.lastPosition == 0 && that.currentTargetPosition == 100) that.absoluteTargetUPflag = 1
          that.currentPositionState = (topic == that.topicStatusGetUP ? 1 : 0)
          var dur = (topic == that.topicStatusGetUP ? that.durationUp : that.durationDown)
          that.service.setCharacteristic(Characteristic.PositionState, that.currentPositionState);
@@ -152,13 +148,11 @@ function TasmotaMotorMQTT(log, config){
         	if (that.lastPosition < 0) that.lastPosition = 0
             that.service.setCharacteristic(Characteristic.CurrentPosition, that.lastPosition);
             that.currentTargetPosition = that.lastPosition
-         }, dur*10);
+         }, dur*9.6);
       }
       if (message == "OFF") { 
         clearInterval(that.intervalhandle); 
         that.intervalhandle = 0; 
-        if (that.absoluteTargetDOWNflag == 1) that.currentTargetPosition = 0
-        if (that.absoluteTargetUPflag == 1) that.currentTargetPosition = 100
         that.lastPosition = that.currentTargetPosition
         that.currentPositionState = 2;
         that.service.setCharacteristic(Characteristic.PositionState, that.lastPosition);
@@ -200,7 +194,7 @@ TasmotaMotorMQTT.prototype.setTargetPosition = function(pos, callback) {
     callback();
     return false;
   }
-
+  
   if (this.lastPosition == pos) {
     this.log("Current position already matches target position. There is nothing to do.");
     callback();
