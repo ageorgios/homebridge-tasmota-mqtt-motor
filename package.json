@@ -1,0 +1,26 @@
+{
+  "name": "homebridge-tasmota-mqtt-motor",
+  "version": "1.0.4",
+  "description": "Control Sonoff T1 for Blinds through homebridge and MQTT Server",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "homebridge-plugin"
+  ],
+  "author": "Georgios Andritsos <ageorgios@gmail.com>",
+  "license": "MIT",
+  "engines": {
+    "node": ">=0.12.0",
+    "homebridge": ">=0.2.0"
+  },
+  "dependencies": {
+    "mqtt": "^2.15.3",
+    "request": "^2.81.0"
+  },
+  "bugs": {
+    "url": "https://github.com/ageorgios/homebridge-tasmota-mqtt-motor.git/issues"
+  },
+  "homepage": "https://github.com/ageorgios/homebridge-tasmota-mqtt-motor.git#readme"
+}
