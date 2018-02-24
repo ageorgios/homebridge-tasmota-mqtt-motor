@@ -1,6 +1,6 @@
 # homebridge-tasmota-mqtt-motor
 
-This is a plugin for [homebridge](https://github.com/nfarina/homebridge)
+This is a plugin for [homebridge](https://github.com/nfarina/homebridge) to interface with [Tasmota Firmware](https://github.com/arendst/Sonoff-Tasmota) 
 
 Uses HTTP for sending commands and MQTT for listening for button presses and updating state
 
