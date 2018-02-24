@@ -155,7 +155,7 @@ function TasmotaMotorMQTT(log, config){
         if (that.currentTargetPosition <= 5) that.currentTargetPosition = 0
         that.lastPosition = that.currentTargetPosition
         that.currentPositionState = 2;
-        that.service.setCharacteristic(Characteristic.PositionState, that.lastPosition);
+        that.service.setCharacteristic(Characteristic.PositionState, that.currentPositionState);
         that.log("lastPosition = " + that.lastPosition + " PositionState = " + that.currentPositionState + " currentTargetPosition = " + that.currentTargetPosition);
         that.service.setCharacteristic(Characteristic.CurrentPosition, that.lastPosition);
         that.service.setCharacteristic(Characteristic.TargetPosition, that.lastPosition);
