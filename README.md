@@ -1,17 +1,18 @@
-# homebridge-tasmota-motor
+# homebridge-tasmota-mqtt-motor
 
 This is a plugin for [homebridge](https://github.com/nfarina/homebridge)
+Needs MQTT Server and Tasmota v5.12.0 and up
 
 ## Example config
 
 ```json
     {
-      "accessory": "TasmotaMotor2",
+      "accessory": "TasmotaMotorMQTT",
       "name": "Window",
-      "hostname": "hostname",
-      "secondsDown": 5,
-      "secondsUp": 5,
-      "topicStatusGetUP" : "stat/mqtt-name/POWER2",
-      "topicStatusGetDOWN" : "stat/mqtt-name/POWER1"
+      "hostname": "sonoff-7442",
+      "secondsDown": 20,
+      "secondsUp": 20,
+      "topicStatusGetUP" : "stat/sonoff-7442/POWER2",
+      "topicStatusGetDOWN" : "stat/sonoff-7442/POWER1"
     },
 ```
