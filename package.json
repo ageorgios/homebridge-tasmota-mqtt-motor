@@ -16,7 +16,7 @@
     "homebridge": ">=0.2.0"
   },
   "dependencies": {
-    "async": "^2.6.0",
+    "correcting-interval": "^2.0.0",
     "mqtt": "^2.15.3",
     "request": "^2.81.0",
     "request-promise-native": "^1.0.5"
