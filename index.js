@@ -1,8 +1,8 @@
 var request = require('request');
 var rp = require('request-promise-native');
 var mqtt = require("mqtt");
+var ci = require('correcting-interval')
 var Service, Characteristic;
-var async = require('async');
 
 module.exports = function(homebridge){
         Service = homebridge.hap.Service;
@@ -14,7 +14,7 @@ module.exports = function(homebridge){
 function TasmotaMotorMQTT(log, config){
 
     var finalUpdateTimer = 0
-  	var intervalhandle = 0;
+    var intervalhandle = 0;
     var ensuring = 0
     
     this.log = log; // log file
@@ -34,36 +34,36 @@ function TasmotaMotorMQTT(log, config){
 
     var url = 'http://' + this.hostname + '/cm?cmnd=setoption14%201'
     this.log("Ensuring Tasmota Interlocking:  " + url);                    
-    rp({uri: url, json: true})
+    rp({uri: url, json: true, timeout: 10000})
     .then((json)=> {
         this.log("Interlocking result: " + JSON.stringify(json));
     })
     .catch((error)=> {
-        ensuring = 1
+        this.ensuring = 1
         this.log("Error communicating to: " + url, error);
         this.log("ERROR CONFIGURING HOMEKIT DEVICE" + this.name); 
     })
 
     var url = 'http://' + this.hostname + '/cm?cmnd=setoption13%201'
     this.log("Ensuring Tasmota Touch Switch:  " + url);                    
-    rp({uri: url, json: true})
+    rp({uri: url, json: true, timeout: 10000})
     .then((json)=> {
         this.log("Touch Switch result: " + JSON.stringify(json));
     })
     .catch((error)=> {
-        ensuring = 1
+        this.ensuring = 1
         this.log("Error communicating to: " + url, error);
         this.log("ERROR CONFIGURING HOMEKIT DEVICE" + this.name); 
     })
 
     var url = 'http://' + this.hostname + '/cm?cmnd=backlog%20setoption0%200;PowerOnState%200'
     this.log("Ensuring Powered Off on Restart:  " + url);                    
-    rp({uri: url, json: true})
+    rp({uri: url, json: true, timeout: 10000})
     .then((json)=> {
         this.log("Powered Off on Restart result: " + JSON.stringify(json));
     })
     .catch((error)=> {
-        ensuring = 1
+        this.ensuring = 1
         this.log("Error communicating to: " + url, error);
         this.log("ERROR CONFIGURING HOMEKIT DEVICE" + this.name); 
     })
@@ -73,14 +73,14 @@ function TasmotaMotorMQTT(log, config){
     if (this.durationDown < 12) pulsetimeDOWN = this.durationDown * 10; else pulsetimeDOWN = this.durationDown + 100
     var url = 'http://' + this.hostname + '/cm?cmnd=backlog%20pulsetime1%20' + pulsetimeUP + ';pulsetime2%20' + pulsetimeDOWN
     this.log("Ensuring PulseTime:  " + url);                    
-    rp({uri: url, json: true})
+    rp({uri: url, json: true, timeout: 10000})
     .then((json)=> {
         this.log("PulseTime result: " + JSON.stringify(json));
     })
     .catch((error)=> {
-        ensuring = 1
+        this.ensuring = 1
         this.log("Error communicating to: " + url, error);
-        this.log("ERROR CONFIGURING HOMEKIT DEVICE" + this.name); 
+        this.log("ERROR CONFIGURING HOMEKIT DEVICE " + this.name + " IT WILL NOT RESPOND TO ACTIONS"); 
     })
     
     this.infoService = new Service.AccessoryInformation();
@@ -100,69 +100,67 @@ function TasmotaMotorMQTT(log, config){
             .getCharacteristic(Characteristic.TargetPosition)
             .on('get', this.getTargetPosition.bind(this))
             .on('set', this.setTargetPosition.bind(this));
-
-
             
     this.client_Id = 'Homebridge_TasmotaMotorMQTT_' + Math.random().toString(16).substr(2, 8);
-  	this.mqttOptions = {
-  		keepalive: 10,
-  		clientId: this.client_Id,
-  		protocol: 'MQTT',
-  		protocolVersion: 4,
-  		clean: true,
-  		reconnectPeriod: 1000,
-  		connectTimeout: 30 * 1000,
-  		will: {
-  			topic: 'WillMsg',
-  			payload: 'Connection Closed abnormally..!',
-  			qos: 0,
-  			retain: false
-  		},
-  		username: config["username"],
-  		password: config["password"],
-  		rejectUnauthorized: false
-  	};
+    this.mqttOptions = {
+      keepalive: 10,
+      clientId: this.client_Id,
+      protocol: 'MQTT',
+      protocolVersion: 4,
+      clean: true,
+      reconnectPeriod: 1000,
+      connectTimeout: 30 * 1000,
+      will: {
+        topic: 'WillMsg',
+        payload: 'Connection Closed abnormally..!',
+        qos: 0,
+        retain: false
+      },
+      username: config["username"],
+      password: config["password"],
+      rejectUnauthorized: false
+    };
             
     this.client = mqtt.connect(this.mqttUrl, this.mqttOptions);
     var that = this;
-  	this.client.on('error', function() {
-  		that.log('Error event on MQTT');
-  	});
-  	this.client.on('connect', function() {
-  			that.log("Connected to MQTT at " + this.mqttUrl);
-  			setTimeout(function() {that.client.subscribe(that.topicStatusGetUP)},1000)
-  			setTimeout(function() {that.client.subscribe(that.topicStatusGetDOWN)},1000)
-  	});
-  	this.client.on('message', function(topic, message) {
+    this.client.on('error', function() {
+      that.log('Error event on MQTT');
+    });
+    this.client.on('connect', function(error) {
+        if (error)
+        that.log("Connected to MQTT at ");
+        setTimeout(function() {that.client.subscribe(that.topicStatusGetUP)},1000)
+        setTimeout(function() {that.client.subscribe(that.topicStatusGetDOWN)},1000)
+    });
+    this.client.on('message', function(topic, message) {
       // that.log(topic + " message received = " + message);
       if (message == "ON") {
-         that.log("moving window from buttons, lastPosition = " + that.lastPosition);
          that.currentPositionState = (topic == that.topicStatusGetUP ? 1 : 0)
          var dur = (topic == that.topicStatusGetUP ? that.durationUp : that.durationDown)
          that.service.setCharacteristic(Characteristic.PositionState, that.currentPositionState);
          // that.log("setCharacteristic PositionState = " + that.currentPositionState);
-         that.intervalhandle = setInterval(function() {
+         that.intervalhandle = ci.setCorrectingInterval(function() {
            (topic == that.topicStatusGetUP ? that.lastPosition++ : that.lastPosition--)
+            if (that.lastPosition >= 100) that.lastPosition = 100
+            if (that.lastPosition <= 0) that.lastPosition = 0
             // that.log("time passed: Setting CurrentPosition " + that.lastPosition)
-            if (that.lastPosition > 100) that.lastPosition = 100
-        	if (that.lastPosition < 0) that.lastPosition = 0
             that.service.setCharacteristic(Characteristic.CurrentPosition, that.lastPosition);
             that.currentTargetPosition = that.lastPosition
-         }, dur*9.6);
+         }, dur*10);
       }
       if (message == "OFF") { 
-        clearInterval(that.intervalhandle); 
+        ci.clearCorrectingInterval(that.intervalhandle); 
         that.intervalhandle = 0; 
+        if (that.currentTargetPosition >= 95) that.currentTargetPosition = 100
+        if (that.currentTargetPosition <= 5) that.currentTargetPosition = 0
         that.lastPosition = that.currentTargetPosition
         that.currentPositionState = 2;
         that.service.setCharacteristic(Characteristic.PositionState, that.lastPosition);
         that.log("lastPosition = " + that.lastPosition + " PositionState = " + that.currentPositionState + " currentTargetPosition = " + that.currentTargetPosition);
         that.service.setCharacteristic(Characteristic.CurrentPosition, that.lastPosition);
         that.service.setCharacteristic(Characteristic.TargetPosition, that.lastPosition);
-      	that.absoluteTargetDOWNflag = 0
-      	that.absoluteTargetUPflag = 0
       }
-  	});
+    });
 }
 
 TasmotaMotorMQTT.prototype.getCurrentPosition = function(callback) {
@@ -184,8 +182,8 @@ TasmotaMotorMQTT.prototype.setTargetPosition = function(pos, callback) {
 
   this.log("Setting target position to %s", pos);
   if (this.ensuring) {
-    this.log("Did not ensure that Tasmota Options are set.");
-    callback();
+    this.log("Did not ensure that Tasmota Options are set. Please make homebridge available when Tasmota is already POWERED ON");
+    callback("Did not ensure that Tasmota Options are set.");
     return false;
   }
 
@@ -212,7 +210,7 @@ TasmotaMotorMQTT.prototype.setTargetPosition = function(pos, callback) {
     duration = duration * this.durationDown
   }
 
-  this.log("Duration: %s s", duration.toFixed(1));
+  // this.log("Duration: %s s", duration.toFixed(1));
 
   var that = this
   this.httpRequest(move, duration, function(err) {
@@ -245,7 +243,7 @@ TasmotaMotorMQTT.prototype.httpRequest = function(move, duration, callback){
   this.log("Sonoff link for moving blinds:  " + url);                    
   request.get({ url: url,  }, function(err, response, body) {
     if (!err && response && response.statusCode == 200) {
-    	return callback(null);
+      return callback(null);
     } else {
       this.log("Error communicating to: " + url, err);
       return callback(err);
