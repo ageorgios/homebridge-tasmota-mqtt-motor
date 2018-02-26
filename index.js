@@ -39,7 +39,7 @@ function TasmotaMotorMQTT(log, config){
         this.log("Interlocking result: " + JSON.stringify(json));
     })
     .catch((error)=> {
-        this.ensuring = 1
+        this.ensuring++
         this.log("Error communicating to: " + url, error);
         this.log("ERROR CONFIGURING HOMEKIT DEVICE" + this.name); 
     })
@@ -51,7 +51,7 @@ function TasmotaMotorMQTT(log, config){
         this.log("Touch Switch result: " + JSON.stringify(json));
     })
     .catch((error)=> {
-        this.ensuring = 1
+        this.ensuring++
         this.log("Error communicating to: " + url, error);
         this.log("ERROR CONFIGURING HOMEKIT DEVICE" + this.name); 
     })
@@ -63,7 +63,7 @@ function TasmotaMotorMQTT(log, config){
         this.log("Powered Off on Restart result: " + JSON.stringify(json));
     })
     .catch((error)=> {
-        this.ensuring = 1
+        this.ensuring++
         this.log("Error communicating to: " + url, error);
         this.log("ERROR CONFIGURING HOMEKIT DEVICE" + this.name); 
     })
@@ -78,7 +78,7 @@ function TasmotaMotorMQTT(log, config){
         this.log("PulseTime result: " + JSON.stringify(json));
     })
     .catch((error)=> {
-        this.ensuring = 1
+        this.ensuring++
         this.log("Error communicating to: " + url, error);
         this.log("ERROR CONFIGURING HOMEKIT DEVICE " + this.name + " IT WILL NOT RESPOND TO ACTIONS"); 
     })
@@ -128,7 +128,7 @@ function TasmotaMotorMQTT(log, config){
     });
     this.client.on('connect', function(error) {
         if (error)
-        that.log("Connected to MQTT at ");
+        that.log("Connected to MQTT at ",this.mqttUrl);
         setTimeout(function() {that.client.subscribe(that.topicStatusGetUP)},1000)
         setTimeout(function() {that.client.subscribe(that.topicStatusGetDOWN)},1000)
     });
@@ -154,11 +154,11 @@ function TasmotaMotorMQTT(log, config){
         if (that.currentTargetPosition >= 95) that.currentTargetPosition = 100
         if (that.currentTargetPosition <= 5) that.currentTargetPosition = 0
         that.lastPosition = that.currentTargetPosition
-        that.currentPositionState = 2;
-        that.service.setCharacteristic(Characteristic.PositionState, that.currentPositionState);
         that.log("lastPosition = " + that.lastPosition + " PositionState = " + that.currentPositionState + " currentTargetPosition = " + that.currentTargetPosition);
         that.service.setCharacteristic(Characteristic.CurrentPosition, that.lastPosition);
         that.service.setCharacteristic(Characteristic.TargetPosition, that.lastPosition);
+        that.currentPositionState = 2;
+        that.service.setCharacteristic(Characteristic.PositionState, that.currentPositionState);
       }
     });
 }
@@ -181,7 +181,7 @@ TasmotaMotorMQTT.prototype.getTargetPosition = function(callback) {
 TasmotaMotorMQTT.prototype.setTargetPosition = function(pos, callback) {
 
   this.log("Setting target position to %s", pos);
-  if (this.ensuring) {
+  if (this.ensuring < 4) {
     this.log("Did not ensure that Tasmota Options are set. Please make homebridge available when Tasmota is already POWERED ON");
     callback("Did not ensure that Tasmota Options are set.");
     return false;
