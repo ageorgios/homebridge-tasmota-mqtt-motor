@@ -144,8 +144,8 @@ function TasmotaMotorMQTT(log, config){
             if (that.lastPosition >= 100) that.lastPosition = 100
             if (that.lastPosition <= 0) that.lastPosition = 0
             // that.log("time passed: Setting CurrentPosition " + that.lastPosition)
-            that.service.setCharacteristic(Characteristic.CurrentPosition, that.lastPosition);
             that.currentTargetPosition = that.lastPosition
+            that.service.setCharacteristic(Characteristic.CurrentPosition, that.lastPosition);
          }, dur*10);
       }
       if (message == "OFF") { 
