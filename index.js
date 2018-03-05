@@ -216,7 +216,6 @@ TasmotaMotorMQTT.prototype.setTargetPosition = function(pos, callback) {
   var that = this
   this.httpRequest(move, duration, function(err) {
     if(err) return callback(err);
-    that.state_homekit_command = 0
     that.log(move ? "Moving up " + duration.toFixed(1) + "s" : "Moving down " + duration.toFixed(1) + "s");
     callback()
   });
