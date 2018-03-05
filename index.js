@@ -14,9 +14,9 @@ module.exports = function(homebridge){
 function TasmotaMotorMQTT(log, config){
 
     var finalUpdateTimer = 0
-    var intervalhandle = 0;
     var ensuring = 0
-    
+    var intervalhandle = 0
+
     this.log = log; // log file
     this.name = config["name"]; 
     this.hostname = config["hostname"];
@@ -133,7 +133,7 @@ function TasmotaMotorMQTT(log, config){
         setTimeout(function() {that.client.subscribe(that.topicStatusGetDOWN)},1000)
     });
     this.client.on('message', function(topic, message) {
-      // that.log(topic + " message received = " + message);
+      that.log(topic + " message received = " + message);
       if (message == "ON") {
          that.currentPositionState = (topic == that.topicStatusGetUP ? 1 : 0)
          var dur = (topic == that.topicStatusGetUP ? that.durationUp : that.durationDown)
@@ -145,6 +145,7 @@ function TasmotaMotorMQTT(log, config){
             if (that.lastPosition <= 0) that.lastPosition = 0
             // that.log("time passed: Setting CurrentPosition " + that.lastPosition)
             that.currentTargetPosition = that.lastPosition
+            that.service.getCharacteristic(Characteristic.TargetPosition).updateValue(that.currentTargetPosition);
             that.service.setCharacteristic(Characteristic.CurrentPosition, that.lastPosition);
          }, dur*10);
       }
@@ -156,7 +157,7 @@ function TasmotaMotorMQTT(log, config){
         that.lastPosition = that.currentTargetPosition
         that.log("lastPosition = " + that.lastPosition + " PositionState = " + that.currentPositionState + " currentTargetPosition = " + that.currentTargetPosition);
         that.service.setCharacteristic(Characteristic.CurrentPosition, that.lastPosition);
-        that.service.setCharacteristic(Characteristic.TargetPosition, that.lastPosition);
+        that.service.getCharacteristic(Characteristic.TargetPosition).updateValue(that.currentTargetPosition);
         that.currentPositionState = 2;
         that.service.setCharacteristic(Characteristic.PositionState, that.currentPositionState);
       }
@@ -179,7 +180,7 @@ TasmotaMotorMQTT.prototype.getTargetPosition = function(callback) {
 }
 
 TasmotaMotorMQTT.prototype.setTargetPosition = function(pos, callback) {
-
+  
   this.log("Setting target position to %s", pos);
   if (this.ensuring < 4) {
     this.log("Did not ensure that Tasmota Options are set. Please make homebridge available when Tasmota is already POWERED ON");
@@ -215,6 +216,7 @@ TasmotaMotorMQTT.prototype.setTargetPosition = function(pos, callback) {
   var that = this
   this.httpRequest(move, duration, function(err) {
     if(err) return callback(err);
+    that.state_homekit_command = 0
     that.log(move ? "Moving up " + duration.toFixed(1) + "s" : "Moving down " + duration.toFixed(1) + "s");
     callback()
   });
