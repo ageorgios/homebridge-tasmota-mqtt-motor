@@ -135,6 +135,8 @@ function TasmotaMotorMQTT(log, config){
     this.client.on('message', function(topic, message) {
       that.log(topic + " message received = " + message);
       if (message == "ON") {
+         if (topic == that.topicStatusGetUP && that.lastPosition == that.currentTargetPosition) that.service.getCharacteristic(Characteristic.TargetPosition).updateValue(100);
+         if (topic == that.topicStatusGetDOWN && that.lastPosition == that.currentTargetPosition) that.service.getCharacteristic(Characteristic.TargetPosition).updateValue(0);
          that.currentPositionState = (topic == that.topicStatusGetUP ? 1 : 0)
          var dur = (topic == that.topicStatusGetUP ? that.durationUp : that.durationDown)
          that.service.setCharacteristic(Characteristic.PositionState, that.currentPositionState);
@@ -145,7 +147,7 @@ function TasmotaMotorMQTT(log, config){
             if (that.lastPosition <= 0) that.lastPosition = 0
             // that.log("time passed: Setting CurrentPosition " + that.lastPosition)
             that.currentTargetPosition = that.lastPosition
-            that.service.getCharacteristic(Characteristic.TargetPosition).updateValue(that.currentTargetPosition);
+            // that.service.getCharacteristic(Characteristic.TargetPosition).updateValue(that.currentTargetPosition);
             that.service.setCharacteristic(Characteristic.CurrentPosition, that.lastPosition);
          }, dur*10);
       }
