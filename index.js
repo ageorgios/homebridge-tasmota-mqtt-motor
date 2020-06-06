@@ -71,7 +71,7 @@ function TasmotaMotorMQTT(log, config){
     var pulsetimeUP = 12, pulsetimeDOWN = 12
     if (this.durationUp < 12) pulsetimeUP = this.durationUp * 10; else pulsetimeUP = this.durationUp + 100
     if (this.durationDown < 12) pulsetimeDOWN = this.durationDown * 10; else pulsetimeDOWN = this.durationDown + 100
-    var url = 'http://' + this.hostname + '/cm?cmnd=backlog%20pulsetime1%20' + pulsetimeUP + ';pulsetime2%20' + pulsetimeDOWN
+    var url = 'http://' + this.hostname + '/cm?cmnd=backlog%20pulsetime1%20' + pulsetimeUP + '%3Bpulsetime2%20' + pulsetimeDOWN
     this.log("Ensuring PulseTime:  " + url);                    
     rp({uri: url, json: true, timeout: 10000})
     .then((json)=> {
@@ -242,7 +242,7 @@ TasmotaMotorMQTT.prototype.httpRequest = function(move, duration, callback){
       if (this.durationDown < 12) pulsetime = this.durationDown * 10; else pulsetime = this.durationDown + 100
   }
   var m = move ? 2 : 1
-  url = 'http://' + this.hostname + '/cm?cmnd=backlog%20pulsetime'+m+'%20'+duration.toFixed(0)+';power'+m+'%20on;delay%20'+delay.toFixed(0)+';pulsetime'+m+'%20'+pulsetime.toFixed(0)
+  url = 'http://' + this.hostname + '/cm?cmnd=backlog%20pulsetime'+m+'%20'+duration.toFixed(0)+'%3Bpower'+m+'%20on%3Bdelay%20'+delay.toFixed(0)+'%3Bpulsetime'+m+'%20'+pulsetime.toFixed(0)
   this.log("Sonoff link for moving blinds:  " + url);                    
   request.get({ url: url,  }, function(err, response, body) {
     if (!err && response && response.statusCode == 200) {
